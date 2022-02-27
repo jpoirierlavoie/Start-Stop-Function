@@ -1,0 +1,57 @@
+steps:
+- name: "gcr.io/cloud-builders/gcloud"
+  id: "Decrypt Environment Variables"
+  args:
+    [
+    "kms",
+    "decrypt",
+    "--key=cloud-function",
+    "--keyring=envvars",
+    "--location=northamerica-northeast1",
+    "--ciphertext-file=envvars.encrypted",
+    "--plaintext-file=envvars.yaml"
+    ]
+  timeout: 60s
+- name: "gcr.io/cloud-builders/gcloud"
+  id: "Deploy Start-VM Cloud Function"
+  waitFor:
+    [
+    "Decrypt Environment Variables"
+    ]
+  args:
+    [
+    "functions",
+    "deploy",
+    "start-foundry",
+    "--region=northamerica-northeast1",
+    "--entry-point=start_vm",
+    "--memory=128MB",
+    "--runtime=python39",
+    "--timeout=60s",
+    "--max-instances=1",
+    "--trigger-http",
+    "--env-vars-file=envvars.yaml"
+    ]
+  timeout: 120s
+- name: "gcr.io/cloud-builders/gcloud"
+  id: "Deploy Stop-VM Cloud Function"
+  waitFor:
+    [
+    "Decrypt Environment Variables"
+    ]
+  args:
+    [
+    "functions",
+    "deploy",
+    "stop-foundry",
+    "--region=northamerica-northeast1",
+    "--entry-point=stop_vm",
+    "--memory=128MB",
+    "--runtime=python39",
+    "--timeout=60s",
+    "--max-instances=1",
+    "--trigger-http",
+    "--env-vars-file=envvars.yaml"
+    ]
+  timeout: 120s
+timeout: 240s
